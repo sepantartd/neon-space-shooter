@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🚀 Neon Space Shooter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    touch-action: none;
+    user-select: none;
+  }
+
+  canvas {
+    display: block;
+    background: linear-gradient(180deg, #0a0a1a 0%, #1a0a2e 100%);
+  }
+
+  #ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
+  }
+
+  #score {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    font-size: 24px;
+    font-weight: bold;
+  }
+
+  #highscore {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 18px;
+    color: #ff0;
+    text-shadow: 0 0 10px #ff0;
+  }
+
+  #gameOver {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: none;
+    pointer-events: auto;
+  }
+
+  #gameOver h1 {
+    font-size: 48px;
+    color: #ff006e;
+    text-shadow: 0 0 20px #ff006e;
+    margin-bottom: 20px;
+  }
+
+  #gameOver p {
+    font-size: 24px;
+    margin-bottom: 30px;
+  }
+
+  .btn {
+    padding: 15px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #000;
+    background: #0ff;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    margin: 10px;
+    box-shadow: 0 0 20px #0ff;
+    transition: all 0.3s;
+    font-family: 'Courier New', monospace;
+  }
+
+  .btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 30px #0ff;
+  }
+
+  .btn.share {
+    background: #ff006e;
+    color: #fff;
+    box-shadow: 0 0 20px #ff006e;
+  }
+
+  #startScreen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: auto;
+  }
+
+  #startScreen h1 {
+    font-size: 42px;
+    color: #0ff;
+    text-shadow: 0 0 30px #0ff;
+    margin-bottom: 20px;
+  }
+
+  #startScreen p {
+    font-size: 18px;
+    margin-bottom: 30px;
+    color: #fff;
+    opacity: 0.8;
+  }
+
+  #controls {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 14px;
+    color: #fff;
+    opacity: 0.5;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="ui">
+  <div id="score">SCORE: 0</div>
+  <div id="highscore">BEST: 0</div>
+  
+  <div id="startScreen">
+    <h1>🚀 NEON SHOOTER</h1>
+    <p>Move: Touch/Drag | Shoot: Tap</p>
+    <button class="btn" onclick="startGame()">START GAME</button>
+  </div>
+
+  <div id="gameOver">
+    <h1>GAME OVER</h1>
+    <p>Score: <span id="finalScore">0</span></p>
+    <button class="btn" onclick="startGame()">RETRY</button>
+    <button class="btn share" onclick="shareScore()">SHARE</button>
+  </div>
+
+  <div id="controls">
+    Touch & Drag to Move | Tap to Shoot
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+// Game state
+let gameRunning = false;
+let score = 0;
+let highScore = localStorage.getItem('highScore') || 0;
+document.getElementById('highscore').textContent = `BEST: ${highScore}`;
+
+// Player
+const player = {
+  x: canvas.width / 2,
+  y: canvas.height - 100,
+  width: 40,
+  height: 40,
+  speed: 8,
+  color: '#0ff'
+};
+
+// Arrays
+let bullets = [];
+let enemies = [];
+let particles = [];
+let stars = [];
+
+// Create stars background
+for (let i = 0; i < 100; i++) {
+  stars.push({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    size: Math.random() * 2,
+    speed: Math.random() * 2 + 0.5
+  });
+}
+
+// Touch controls
+let touchX = null;
+let touchY = null;
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  touchX = touch.clientX;
+  touchY = touch.clientY;
+  if (gameRunning) shoot();
+});
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!gameRunning) return;
+  const touch = e.touches[0];
+  const dx = touch.clientX - touchX;
+  player.x += dx;
+  player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
+  touchX = touch.clientX;
+});
+
+canvas.addEventListener('touchend', () => {
+  touchX = null;
+  touchY = null;
+});
+
+// Mouse controls (for desktop testing)
+canvas.addEventListener('mousemove', (e) => {
+  if (!gameRunning) return;
+  player.x = e.clientX;
+  player.x = Math.max(player.width / 2, Math.min(canvas.width - player.width / 2, player.x));
+});
+
+canvas.addEventListener('click', () => {
+  if (gameRunning) shoot();
+});
+
+// Shoot
+function shoot() {
+  bullets.push({
+    x: player.x,
+    y: player.y - player.height / 2,
+    width: 4,
+    height: 20,
+    speed: 12,
+    color: '#ff0'
+  });
+}
+
+// Spawn enemy
+function spawnEnemy() {
+  const size = 30 + Math.random() * 20;
+  enemies.push({
+    x: Math.random() * (canvas.width - size),
+    y: -size,
+    width: size,
+    height: size,
+    speed: 2 + Math.random() * 2,
+    color: `hsl(${Math.random() * 60 + 300}, 100%, 50%)`
+  });
+}
+
+// Create explosion
+function createExplosion(x, y, color) {
+  for (let i = 0; i < 20; i++) {
+    particles.push({
+      x: x,
+      y: y,
+      vx: (Math.random() - 0.5) * 8,
+      vy: (Math.random() - 0.5) * 8,
+      size: Math.random() * 4 + 2,
+      color: color,
+      life: 1
+    });
+  }
+}
+
+// Update game
+function update() {
+  if (!gameRunning) return;
+
+  // Update stars
+  stars.forEach(star => {
+    star.y += star.speed;
+    if (star.y > canvas.height) {
+      star.y = 0;
+      star.x = Math.random() * canvas.width;
+    }
+  });
+
+  // Update bullets
+  bullets = bullets.filter(bullet => {
+    bullet.y -= bullet.speed;
+    return bullet.y > -bullet.height;
+  });
+
+  // Update enemies
+  enemies = enemies.filter(enemy => {
+    enemy.y += enemy.speed;
+    
+    // Check collision with player
+    if (checkCollision(player, enemy)) {
+      gameOver();
+      return false;
+    }
+    
+    return enemy.y < canvas.height + enemy.height;
+  });
+
+  // Bullet-enemy collision
+  bullets = bullets.filter(bullet => {
+    let hit = false;
+    enemies = enemies.filter(enemy => {
+      if (checkCollision(bullet, enemy)) {
+        hit = true;
+        score += 10;
+        document.getElementById('score').textContent = `SCORE: ${score}`;
+        createExplosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.color);
+        return false;
+      }
+      return true;
+    });
+    return !hit;
+  });
+
+  // Update particles
+  particles = particles.filter(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life -= 0.02;
+    return p.life > 0;
+  });
+
+  // Spawn enemies
+  if (Math.random() < 0.02) {
+    spawnEnemy();
+  }
+}
+
+// Check collision
+function checkCollision(obj1, obj2) {
+  return obj1.x < obj2.x + obj2.width &&
+         obj1.x + obj1.width > obj2.x &&
+         obj1.y < obj2.y + obj2.height &&
+         obj1.y + obj1.height > obj2.y;
+}
+
+// Draw
+function draw() {
+  ctx.fillStyle = 'rgba(10, 10, 26, 0.3)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw stars
+  ctx.fillStyle = '#fff';
+  stars.forEach(star => {
+    ctx.fillRect(star.x, star.y, star.size, star.size);
+  });
+
+  // Draw player
+  ctx.fillStyle = player.color;
+  ctx.shadowBlur = 20;
+  ctx.shadowColor = player.color;
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y - player.height / 2);
+  ctx.lineTo(player.x - player.width / 2, player.y + player.height / 2);
+  ctx.lineTo(player.x + player.width / 2, player.y + player.height / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Draw bullets
+  bullets.forEach(bullet => {
+    ctx.fillStyle = bullet.color;
+    ctx.shadowColor = bullet.color;
+    ctx.fillRect(bullet.x - bullet.width / 2, bullet.y, bullet.width, bullet.height);
+  });
+
+  // Draw enemies
+  enemies.forEach(enemy => {
+    ctx.fillStyle = enemy.color;
+    ctx.shadowColor = enemy.color;
+    ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
+  });
+
+  // Draw particles
+  particles.forEach(p => {
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life;
+    ctx.fillRect(p.x, p.y, p.size, p.size);
+    ctx.globalAlpha = 1;
+  });
+
+  ctx.shadowBlur = 0;
+}
+
+// Game loop
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+// Start game
+function startGame() {
+  gameRunning = true;
+  score = 0;
+  bullets = [];
+  enemies = [];
+  particles = [];
+  player.x = canvas.width / 2;
+  player.y = canvas.height - 100;
+  document.getElementById('score').textContent = `SCORE: 0`;
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('gameOver').style.display = 'none';
+}
+
+// Game over
+function gameOver() {
+  gameRunning = false;
+  createExplosion(player.x, player.y, player.color);
+  
+  if (score > highScore) {
+    highScore = score;
+    localStorage.setItem('highScore', highScore);
+    document.getElementById('highscore').textContent = `BEST: ${highScore}`;
+  }
+  
+  document.getElementById('finalScore').textContent = score;
+  document.getElementById('gameOver').style.display = 'block';
+}
+
+// Share score
+function shareScore() {
+  const text = `🚀 I scored ${score} points in Neon Space Shooter! Can you beat my score? 🎮`;
+  const url = window.location.href;
+  
+  if (navigator.share) {
+    navigator.share({
+      title: 'Neon Space Shooter',
+      text: text,
+      url: url
+    });
+  } else {
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(twitterUrl, '_blank');
+  }
+}
+
+// Start game loop
+gameLoop();
+</script>
+
+</body>
+</html>
