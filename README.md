@@ -10,10 +10,10 @@ A cyberpunk-style space shooter game built with pure HTML5 Canvas and JavaScript
 
 ---
 
-##  Screenshots
+## 📸 Screenshots
 
 <div align="center">
-  <img src="https://user-images.githubusercontent.com/sepantartd/neon-space-shooter/screenshot.png" alt="Neon Space Shooter - Game Over Screen" width="600" />
+  <img src="https://github.com/user-attachments/assets/e0061aed-70e6-48e0-bc35-9571e0aef4c3" alt="Neon Space Shooter - Game Over Screen" width="600" />
 </div>
 
 ---
@@ -21,9 +21,9 @@ A cyberpunk-style space shooter game built with pure HTML5 Canvas and JavaScript
 ## ✨ Features
 
 - 🎯 **Touch & Mouse Controls** - Play on mobile or desktop
--  **Neon Cyberpunk Graphics** - Beautiful glowing effects
+- 🌟 **Neon Cyberpunk Graphics** - Beautiful glowing effects
 - 💥 **Particle Explosion System** - Satisfying visual feedback
--  **High Score System** - Your best score is saved locally
+- 🏆 **High Score System** - Your best score is saved locally
 - 📱 **Fully Responsive** - Works on all screen sizes
 - 🚀 **Share Feature** - Share your score on social media
 - 🎨 **Smooth Animations** - 60 FPS gameplay
@@ -82,7 +82,7 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-##  Contributing
+## 🤝 Contributing
 
 Found a bug? Have a feature request? Feel free to:
 - Open an issue
@@ -91,7 +91,7 @@ Found a bug? Have a feature request? Feel free to:
 
 ---
 
-##  Connect
+## 📬 Connect
 
 Made with ❤️ by **Sepanta RTD**
 
